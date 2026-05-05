@@ -1,5 +1,5 @@
 /*
- * kbuf - Simple character device backed by a 1 KiB kernel buffer.
+ * kbuf - Simple single-device character driver for a 1 KiB kernel buffer.
  * Author: Mohamed GALY
  */
 
@@ -13,9 +13,9 @@
 
 
 #undef pr_fmt
-#define pr_fmt(fmt) KBUILD_MODNAME ": %s: " fmt, __func__
+#define pr_fmt(fmt)             KBUILD_MODNAME ": %s: " fmt, __func__
 
-#define MAX_NUM_OF_DEV          1
+#define NO_OF_DEVICES           1
 #define KBUF_DEV_NAME           "kbuf"
 #define KBUF_CLASS_NAME         "kbuf_class"
 #define BUFF_SIZE               1024
@@ -31,6 +31,7 @@ static struct device *kbuf_device;
 /*=====================================
  * File operations
  *=====================================*/
+
 static ssize_t kbuf_read(struct file *file, char __user *buf, size_t count, loff_t *f_pos)
 {
     pr_info("Read requested for %zu bytes\n", count);
@@ -136,7 +137,7 @@ static int __init kbuf_init(void)
     int ret;
 
     /* Allocate a [Major, Minor] range */
-    ret = alloc_chrdev_region(&kbuf_devNum,0,MAX_NUM_OF_DEV,KBUF_DEV_NAME);
+    ret = alloc_chrdev_region(&kbuf_devNum,0,NO_OF_DEVICES,KBUF_DEV_NAME);
     if(ret < 0) {
         pr_err("Allocation of major and minor number failed, error code:%d\n",ret);
         return ret;
@@ -146,7 +147,7 @@ static int __init kbuf_init(void)
     cdev_init(&kbuf_cdev,&kbuf_fops);
     kbuf_cdev.owner = THIS_MODULE;
 
-    ret = cdev_add(&kbuf_cdev,kbuf_devNum, MAX_NUM_OF_DEV);
+    ret = cdev_add(&kbuf_cdev,kbuf_devNum, NO_OF_DEVICES);
     if(ret < 0) {
         pr_err("cdev_add failed, error code:%d\n",ret);
         goto err_unregister; 
@@ -177,7 +178,7 @@ err_class_destroy:
 err_cdev_del:
     cdev_del(&kbuf_cdev);
 err_unregister:
-    unregister_chrdev_region(kbuf_devNum, MAX_NUM_OF_DEV);
+    unregister_chrdev_region(kbuf_devNum, NO_OF_DEVICES);
     return ret;
 }
 
@@ -187,7 +188,7 @@ static void __exit kbuf_exit(void)
     device_destroy(kbuf_class, kbuf_devNum);
     class_destroy(kbuf_class);
     cdev_del(&kbuf_cdev);
-    unregister_chrdev_region(kbuf_devNum, MAX_NUM_OF_DEV);
+    unregister_chrdev_region(kbuf_devNum, NO_OF_DEVICES);
     pr_info("unloaded\n");
 }
 
@@ -197,5 +198,5 @@ module_exit(kbuf_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Mohamed GALY");
-MODULE_DESCRIPTION("Simple character device backed by a fixed-size kernel buffer");
+MODULE_DESCRIPTION("Simple single-device character driver for a 1 KiB kernel buffer");
 MODULE_VERSION("1.0");
